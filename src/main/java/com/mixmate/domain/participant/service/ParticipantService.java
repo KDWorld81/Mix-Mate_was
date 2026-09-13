@@ -8,6 +8,9 @@ import com.mixmate.domain.group.dto.GroupBanSummary;
 import com.mixmate.domain.group.dto.response.GroupBanListResponse;
 import com.mixmate.domain.group.repository.GroupBanRepository;
 import com.mixmate.domain.group.repository.GroupRepository;
+import com.mixmate.domain.participant.dto.RosterMember;
+import com.mixmate.domain.participant.dto.response.RosterResponse;
+import com.mixmate.domain.participant.dto.RosterRound;
 import com.mixmate.domain.participant.dto.request.ParticipantBulkAddRequest;
 import com.mixmate.domain.participant.dto.request.ParticipantProfileRequest;
 import com.mixmate.domain.participant.dto.response.MyProfileResponse;
@@ -27,7 +30,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -43,6 +48,7 @@ public class ParticipantService {
     private final GroupBanRepository groupBanRepository;
     private final GroupMembership groupMembership;
     private final AssignmentReset assignmentReset;
+    private final TeamNumberLookup teamNumberLookup;
 
     /**
      * 조 편성이 끝난 그룹의 참가자를 차수별로 조회합니다. 카드 표시에 필요한 최소 정보만 내려줍니다.
@@ -231,5 +237,43 @@ public class ParticipantService {
         // 이 참가자는 기존 편성 어디에도 없다. 그대로 두면 조가 없는 채로 확정될 수 있다.
         assignmentReset.resetByGroup(group);
         return new ParticipantBulkAddResponse(addedParticipants.size());
+    }
+
+    /**
+     * 관리자(HOST)가 내려받을 그룹 전체 명단을 차수별로 조회합니다. 그룹 상태로 막지 않아 모집 중에도 조회됩니다.
+     * 2차가 확정되지 않은 그룹은 2차 항목이 담기지 않습니다.
+     */
+    @Transactional(readOnly = true)
+    public RosterResponse getRoster(Long groupId, Long userId) {
+        Group group = groupMembership.getHost(groupId, userId).getGroup();
+
+        List<Participant> firstRoundParticipants = participantRepository.findByGroup(group);
+        List<Participant> secondRoundParticipants = firstRoundParticipants.stream()
+                .filter(participant -> participant.getRoundParticipation() == RoundParticipation.FIRST_AND_SECOND)
+                .toList();
+
+        List<RosterRound> rounds = new ArrayList<>();
+        rounds.add(toRound(group, Round.FIRST_ROUND, firstRoundParticipants));
+
+        RosterRound secondRound = toRound(group, Round.SECOND_ROUND, secondRoundParticipants);
+        // 2차가 확정된 그룹에 대해서 담는다
+        if (secondRound.assigned() || group.getStatus() == GroupStatus.BEFORE_SECOND_ROUND) {
+            rounds.add(secondRound);
+        }
+
+        return new RosterResponse(group.getGroupName(), rounds);
+    }
+
+    /**
+     * 한 차수의 명단을 만듭니다. 그 차수 편성이 없거나 참가자가 배정되지 않았으면 조 번호는 null입니다.
+     */
+    private RosterRound toRound(Group group, Round round, List<Participant> participants) {
+        Map<Long, Integer> teamNumbers = teamNumberLookup.teamNumbersOf(group, round);
+
+        List<RosterMember> members = participants.stream()
+                .map(participant -> RosterMember.of(participant, teamNumbers.get(participant.getParticipantId())))
+                .toList();
+
+        return new RosterRound(round, !teamNumbers.isEmpty(), members);
     }
 }
