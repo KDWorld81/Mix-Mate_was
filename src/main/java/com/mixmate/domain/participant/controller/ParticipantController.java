@@ -8,6 +8,7 @@ import com.mixmate.domain.participant.dto.response.MyProfileResponse;
 import com.mixmate.domain.participant.dto.response.ParticipantBulkAddResponse;
 import com.mixmate.domain.participant.dto.response.ParticipantListResponse;
 import com.mixmate.domain.participant.dto.response.ParticipantProfileResponse;
+import com.mixmate.domain.participant.dto.response.RosterResponse;
 import com.mixmate.domain.participant.enums.Round;
 import com.mixmate.domain.participant.service.ParticipantService;
 import com.mixmate.security.CustomUserDetails;
@@ -180,5 +181,18 @@ public class ParticipantController implements ParticipantApi {
     ) {
         participantService.unbanUser(groupId, targetUserId, userDetails.getUserId());
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 관리자가 내려받을 그룹 전체 명단을 차수별로 조회합니다.
+     * @param groupId 조회할 그룹 식별자
+     * @param userDetails 로그인한 사용자의 인증 정보
+     * @return 차수별 명단. 조 번호는 편성 전이면 null입니다.
+     */
+    public ResponseEntity<RosterResponse> getRoster(
+            @PathVariable Long groupId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return ResponseEntity.ok(participantService.getRoster(groupId, userDetails.getUserId()));
     }
 }
