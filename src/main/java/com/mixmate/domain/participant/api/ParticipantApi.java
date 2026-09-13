@@ -7,6 +7,7 @@ import com.mixmate.domain.participant.dto.response.MyProfileResponse;
 import com.mixmate.domain.participant.dto.response.ParticipantBulkAddResponse;
 import com.mixmate.domain.participant.dto.response.ParticipantListResponse;
 import com.mixmate.domain.participant.dto.response.ParticipantProfileResponse;
+import com.mixmate.domain.participant.dto.response.RosterResponse;
 import com.mixmate.domain.participant.enums.Round;
 import com.mixmate.security.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
@@ -441,6 +442,43 @@ public interface ParticipantApi {
     ResponseEntity<Void> unbanUser(
             @Parameter(description = "그룹 식별자", required = true) @PathVariable Long groupId,
             @Parameter(description = "차단을 해제할 사용자 식별자", required = true) @PathVariable Long targetUserId,
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails
+    );
+
+    @Operation(summary = "명단 조회",
+            description = "관리자가 내려받을 그룹 전체 명단을 차수별로 조회합니다. "
+                    + "학번·이름·학과·학년·성별과 그 차수의 조 번호를 담으며, 파일로 만드는 일은 클라이언트가 합니다. "
+                    + "학번이 나가는 유일한 조회이므로 관리자만 호출할 수 있고, 비공개(PRIVATE) 프로필도 포함됩니다. "
+                    + "그룹 진행 상태를 보지 않으므로 참가자 모집 중에도 조회할 수 있으며, 그때는 teamNumber가 모두 null이고 "
+                    + "assigned가 false입니다. "
+                    + "SECOND_ROUND 항목은 2차가 확정된 그룹에만 담깁니다. 2차 참여를 선택한 인원이 있어도 "
+                    + "관리자가 2차를 진행하지 않고 종료했다면 담기지 않습니다. "
+                    + "그룹이 종료되면 상태만으로는 2차 진행 여부를 알 수 없으므로, 이 항목의 유무로 판단하면 됩니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = RosterResponse.class))),
+            @ApiResponse(responseCode = "401", description = "인증 없음",
+                    content = @Content(examples = @ExampleObject(value = """
+                                { "code": "UNAUTHORIZED", "message": "토큰이 없거나 만료되었습니다." }
+                            """))),
+            @ApiResponse(responseCode = "403", description = "이 그룹의 참가자가 아니거나 관리자가 아님",
+                    content = @Content(examples = {
+                            @ExampleObject(name = "참가자가 아님", value = """
+                                        { "code": "FORBIDDEN", "message": "그룹에 대한 참가정보가 없습니다." }
+                                    """),
+                            @ExampleObject(name = "관리자가 아님", value = """
+                                        { "code": "NOT_GROUP_ADMIN", "message": "관리자 권한이 필요합니다." }
+                                    """)
+                    })),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 그룹",
+                    content = @Content(examples = @ExampleObject(value = """
+                                { "code": "NOT_FOUND", "message": "그룹정보가 없습니다." }
+                            """)))
+    })
+    @GetMapping("/{groupId}/roster")
+    ResponseEntity<RosterResponse> getRoster(
+            @Parameter(description = "그룹 식별자", required = true) @PathVariable Long groupId,
             @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails
     );
 }
