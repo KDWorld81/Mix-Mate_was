@@ -108,6 +108,13 @@ public class AuthService {
         User user = userRepository.findByEmailAndDeletedAtIsNull(dto.getEmail())
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
+        // 소셜 로그인 계정은 애초에 비밀번호가 없다. 여기서 막지 않으면 이메일 인증만으로
+        // 카카오 전용 계정에 비밀번호 로그인 수단이 몰래 하나 더 생겨버려서, 카카오 로그인 쪽에서
+        // "이미 있는 이메일이면 자동연동 안 함"으로 막아둔 정책과 앞뒤가 안 맞게 된다.
+        if (!user.isLocal()) {
+            throw new CustomException(ErrorCode.NOT_LOCAL_ACCOUNT);
+        }
+
         String verifiedKey = PW_RESET_VERIFIED_PREFIX + dto.getEmail();
         if (!"DONE".equals(redisService.getData(verifiedKey))) {
             throw new CustomException(ErrorCode.EMAIL_NOT_VERIFIED);

@@ -99,13 +99,19 @@ public interface AuthApi {
 
     @Operation(summary = "비밀번호 재설정",
             description = "인증번호 검증(password/verify)이 완료된 이메일만 비밀번호를 재설정할 수 있습니다. "
+                    + "카카오 등 소셜 로그인으로 가입된 계정은 재설정할 비밀번호 자체가 없어 이용할 수 없습니다. "
                     + "성공 시 다른 기기의 로그인을 무효화하기 위해 리프레시 토큰을 삭제합니다.")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "재설정 성공"),
-            @ApiResponse(responseCode = "400", description = "필수값 누락 등 입력값 오류, 또는 인증 미완료",
-                    content = @Content(examples = @ExampleObject(value = """
-                                { "code": "EMAIL_NOT_VERIFIED", "message": "이메일 인증이 완료되지 않았습니다." }
-                            """))),
+            @ApiResponse(responseCode = "400", description = "필수값 누락 등 입력값 오류, 인증 미완료, 또는 소셜 로그인 계정",
+                    content = @Content(examples = {
+                            @ExampleObject(name = "인증 미완료", value = """
+                                        { "code": "EMAIL_NOT_VERIFIED", "message": "이메일 인증이 완료되지 않았습니다." }
+                                    """),
+                            @ExampleObject(name = "소셜 로그인 계정", value = """
+                                        { "code": "NOT_LOCAL_ACCOUNT", "message": "소셜 로그인으로 가입된 계정은 비밀번호를 재설정할 수 없습니다." }
+                                    """)
+                    })),
             @ApiResponse(responseCode = "404", description = "가입되지 않은 이메일",
                     content = @Content(examples = @ExampleObject(value = """
                                 { "code": "USER_NOT_FOUND", "message": "사용자를 찾을 수 없습니다." }
