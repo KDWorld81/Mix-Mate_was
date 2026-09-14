@@ -9,6 +9,7 @@ import com.mixmate.domain.auth.dto.request.TokenReissueReqDto;
 import com.mixmate.domain.auth.dto.request.UserNameUpdateReqDto;
 import com.mixmate.domain.auth.dto.request.WithdrawReqDto;
 import com.mixmate.domain.auth.dto.response.LoginResDto;
+import com.mixmate.domain.auth.dto.response.MyInfoResDto;
 import com.mixmate.domain.auth.dto.response.TokenReissueResDto;
 import com.mixmate.security.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
@@ -25,6 +26,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -261,6 +263,25 @@ public interface AuthApi {
     @DeleteMapping("/withdraw")
     ResponseEntity<String> withdraw(@Valid @RequestBody WithdrawReqDto withdrawReqDto,
                                      @Parameter(hidden = true) HttpServletRequest request);
+
+    @Operation(summary = "마이페이지 내 정보 조회 (로그인 필요)",
+            description = "로그인한 사용자 본인의 현재 계정 정보를 조회합니다. userName처럼 로그인 이후 바뀔 수 있는 값도 "
+                    + "항상 최신 상태로 내려주므로, 로그인 응답을 캐싱해서 쓰는 대신 마이페이지 진입 시 이 API로 다시 조회하는 것을 권장합니다.")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "조회 성공",
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = MyInfoResDto.class))),
+            @ApiResponse(responseCode = "401", description = "인증 없음",
+                    content = @Content(examples = @ExampleObject(value = """
+                                { "code": "UNAUTHORIZED", "message": "토큰이 없거나 만료되었습니다." }
+                            """))),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 사용자",
+                    content = @Content(examples = @ExampleObject(value = """
+                                { "code": "USER_NOT_FOUND", "message": "사용자를 찾을 수 없습니다." }
+                            """)))
+    })
+    @GetMapping("/me")
+    ResponseEntity<MyInfoResDto> getMyInfo(@Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails);
 
     @Operation(summary = "마이페이지 이름 수정 (로그인 필요)",
             description = "로그인한 사용자 본인의 표시 이름(userName)을 수정합니다. 최대 10자입니다. "
