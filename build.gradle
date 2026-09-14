@@ -60,5 +60,9 @@ dependencies {
 }
 
 tasks.named('test') {
-    useJUnitPlatform()
+    // benchmark 태그는 정상 동작 검증이 아니라 수치 조사용 일회성 코드라 평소 테스트 실행에서 제외한다.
+    // 필요할 때는 ./gradlew test --tests "<클래스명>"으로 이름을 직접 지정해 실행한다.
+    useJUnitPlatform {
+        excludeTags "benchmark"
+    }
 }
