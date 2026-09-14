@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Path;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -31,9 +32,8 @@ import java.util.stream.Collectors;
  *
  * 인증 실패(401)와 권한 없음(403)은 시큐리티 필터 단계에서 끝나므로 이곳을 거치지 않고,
  * CustomAuthenticationEntryPoint / CustomAccessDeniedHandler가 처리합니다.
- *
- * TODO: 미처리 예외(500) 핸들러는 필요해지는 시점에 추가할 것.
  */
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -128,6 +128,18 @@ public class GlobalExceptionHandler {
                         LinkedHashMap::new));
 
         return badRequest(ErrorCode.INVALID_PARAMETER.getMessage(), errors);
+    }
+
+    /**
+     * 위 핸들러 어디에도 안 걸린, 코드에서 예상하지 못한 예외. 클라이언트에는 내부 정보를 흘리지 않고
+     * 공통 500 응답만 내려주되, 원인 파악을 위해 스택트레이스는 서버 로그에 남긴다.
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ErrorDto> handleUnexpected(Exception e) {
+        log.error("처리되지 않은 예외가 발생했습니다.", e);
+        return ResponseEntity
+                .status(ErrorCode.INTERNAL_SERVER_ERROR.getHttpStatus())
+                .body(new ErrorDto(ErrorCode.INTERNAL_SERVER_ERROR, ErrorCode.INTERNAL_SERVER_ERROR.getMessage()));
     }
 
     private String lastNodeOf(Path propertyPath) {
