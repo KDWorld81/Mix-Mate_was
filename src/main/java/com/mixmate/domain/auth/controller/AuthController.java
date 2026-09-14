@@ -10,6 +10,7 @@ import com.mixmate.domain.auth.dto.request.TokenReissueReqDto;
 import com.mixmate.domain.auth.dto.request.UserNameUpdateReqDto;
 import com.mixmate.domain.auth.dto.request.WithdrawReqDto;
 import com.mixmate.domain.auth.dto.response.LoginResDto;
+import com.mixmate.domain.auth.dto.response.MyInfoResDto;
 import com.mixmate.domain.auth.dto.response.TokenReissueResDto;
 import com.mixmate.domain.auth.service.AuthService;
 import com.mixmate.domain.auth.service.PasswordResetEmailService;
@@ -24,6 +25,7 @@ import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -188,6 +190,12 @@ public class AuthController implements AuthApi {
                 .header(HttpHeaders.SET_COOKIE, expiredAccessCookie.toString())
                 .header(HttpHeaders.SET_COOKIE, expiredRefreshCookie.toString())
                 .body("회원 탈퇴가 완료되었습니다.");
+    }
+
+    // 마이페이지 내 정보 조회 API
+    @GetMapping("/me")
+    public ResponseEntity<MyInfoResDto> getMyInfo(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ResponseEntity.ok(authService.getMyInfo(userDetails.getUserId()));
     }
 
     // 마이페이지 이름 수정 API

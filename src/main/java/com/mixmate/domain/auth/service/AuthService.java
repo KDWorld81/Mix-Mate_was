@@ -12,6 +12,7 @@ import com.mixmate.domain.auth.dto.request.SignupReqDto;
 import com.mixmate.domain.auth.dto.request.UserNameUpdateReqDto;
 import com.mixmate.domain.auth.dto.request.WithdrawReqDto;
 import com.mixmate.domain.auth.dto.response.LoginResDto;
+import com.mixmate.domain.auth.dto.response.MyInfoResDto;
 import com.mixmate.domain.auth.dto.response.TokenReissueResDto;
 import com.mixmate.domain.auth.entity.AuthProvider;
 import com.mixmate.domain.auth.entity.User;
@@ -322,5 +323,19 @@ public class AuthService {
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         user.updateUserName(dto.getUserName());
+    }
+
+    /**
+     * 마이페이지 내 정보 조회 서비스
+     *
+     * @param userId 로그인한 사용자 식별자
+     * @return 현재 계정 정보 (userName처럼 나중에 바뀔 수 있는 값도 항상 최신 상태로 내려준다)
+     */
+    @Transactional(readOnly = true)
+    public MyInfoResDto getMyInfo(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        return MyInfoResDto.fromEntity(user);
     }
 }
