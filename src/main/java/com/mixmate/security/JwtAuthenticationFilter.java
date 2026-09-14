@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -55,8 +56,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                 SecurityContextHolder.getContext().setAuthentication(authentication);
 
-            } catch (JwtException | IllegalArgumentException e) {
-                // 토큰이 만료되었거나 파싱 에러가 날 경우 처리
+            } catch (JwtException | IllegalArgumentException | UsernameNotFoundException e) {
+                // 토큰이 만료·파싱 실패한 경우뿐 아니라, 서명은 유효해도 그 사이 계정이 탈퇴되어
+                // 더 이상 존재하지 않는 경우(예: 탈퇴 처리 후 만료 전 토큰으로 재요청)도 여기서 잡아
+                // 인증 실패로 통일한다. 안 잡으면 UsernameNotFoundException이 필터를 그대로 뚫고
+                // 나가 500으로 응답돼버린다.
                 request.setAttribute("exception", ErrorCode.JWT_TOKEN_PARSING_ERROR);
             }
         }
