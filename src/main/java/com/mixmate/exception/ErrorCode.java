@@ -28,6 +28,7 @@ public enum ErrorCode {
     INVALID_PASSWORD(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 일치하지 않습니다."),
     OAUTH_LOGIN_FAILED(HttpStatus.BAD_REQUEST, "소셜 로그인에 실패했습니다."),
     OAUTH_EMAIL_CONSENT_REQUIRED(HttpStatus.BAD_REQUEST, "카카오 계정에서 이메일 제공에 동의해야 합니다."),
+    NOT_LOCAL_ACCOUNT(HttpStatus.BAD_REQUEST, "소셜 로그인으로 가입된 계정은 비밀번호를 재설정할 수 없습니다."),
 
     // 그룹 / 참가자
     INVALID_INVITE_CODE(HttpStatus.NOT_FOUND, "유효하지 않은 초대코드입니다."),
